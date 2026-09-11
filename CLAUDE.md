@@ -164,46 +164,191 @@ You are the **BRAIN**, not the **HANDS**.
 
 ## WORKER PROTOCOL
 
+### Model Selection Strategy
+
+Choose the right model for each task type:
+
+| Model | Use For | Examples |
+|-------|---------|---------|
+| **Opus** (worker) | Deep reasoning, complex vulnerability analysis, chain exploitation planning | Multi-step exploit chain construction, complex business logic flaws, cryptographic weakness analysis, novel attack vector discovery, architectural security assessment |
+| **Sonnet** (worker) | Standard analysis, code review, testing, exploit PoC | Auth flow review, taint tracing, IDOR testing, XSS/SQLi hunting, report writing, bypass crafting |
+| **Haiku** (worker) | High-volume mechanical tasks, data collection | Running tools, parsing output, subdomain enum, port scan, directory brute, wayback fetch, file reading |
+| **Fork** (inherits Opus) | Strategic decisions needing orchestrator context | Re-evaluating strategy, analyzing findings against chain matrix, pivot decisions |
+
+### Decision Tree for Model Selection
+
+```
+Is this task simple tool execution or data collection?
+  YES → Haiku (fast, cheap, high parallelism)
+    Examples: subdomain enum, port scan, directory brute, wayback fetch,
+              file reading, running nuclei/ffuf, parsing JSON output,
+              screenshot capture, header collection
+
+  NO → Does it require standard analysis or testing?
+    YES → Sonnet (strong reasoning, good cost balance)
+      Examples: code review for common vulns, auth flow analysis,
+                standard exploit PoC, IDOR/XSS/SQLi testing,
+                taint tracing, bypass crafting, report writing
+
+  NO → Does it require DEEP reasoning or novel thinking?
+    YES → Opus (maximum reasoning power)
+      Examples: multi-step exploit chain construction,
+                complex business logic flaw discovery,
+                cryptographic weakness analysis,
+                novel attack vectors against custom protocols,
+                architectural security assessment of large systems,
+                analyzing obfuscated/complex code patterns
+
+    SPECIAL → Does it need MY current context and strategy knowledge?
+      YES → Fork (inherits full orchestrator context, runs as Opus)
+        Examples: "given what we know, should we pivot strategy?",
+                  "analyze this finding against our chain matrix",
+                  "re-evaluate all leads after this new discovery"
+```
+
+### When to Escalate Model
+
+If a Sonnet worker returns **inconclusive or shallow results** on a complex task:
+1. Don't retry with Sonnet — escalate to Opus worker
+2. Include the Sonnet worker's output as context
+3. Ask Opus to go deeper with specific focus areas
+
+If a Haiku worker **misses obvious things** in data collection:
+1. Don't escalate — re-run Haiku with clearer, more specific instructions
+2. Haiku failures are usually prompt quality issues, not capability issues
+
 ### Spawning Workers
 
-Use `Agent` tool with `model: "sonnet"` for execution tasks:
+**Haiku worker** — for tool execution and data collection:
 
 ```
 Agent({
   name: "recon-subdomains",
   description: "Subdomain enumeration",
-  model: "sonnet",
-  prompt: `[Load from core/prompts/ + task-specific context]
-
-  IMPORTANT RULES FOR THIS WORKER:
-  - Be EXHAUSTIVE. Do not skip steps.
-  - Write ALL results to the output file immediately.
-  - If a tool is missing, install it: bash core/tools/check-and-install.sh {tool}
-  - If something fails, report WHY it failed, don't skip silently.
-  - Distinguish CONFIRMED vs INFERRED vs SPECULATED findings.
-  - Note anything that could chain with other bugs.
+  model: "haiku",
+  prompt: `TASK: Run subdomain enumeration for {target}
+  
+  TOOLS: subfinder, amass (if available), crt.sh query
+  OUTPUT: Write all results to target/recon/001-subdomains.md
+  FORMAT: One subdomain per line, deduplicated, sorted
+  
+  If a tool is missing: bash core/tools/check-and-install.sh {tool}
+  If something fails: report WHY, don't skip silently.
   `
 })
 ```
 
-Use `subagent_type: "fork"` for research that needs your context:
+**Sonnet worker** — for standard analysis and testing:
+
+```
+Agent({
+  name: "review-auth-module",
+  description: "Auth code review",
+  model: "sonnet",
+  prompt: `TASK: Review authentication module for common vulnerabilities
+  
+  CONTEXT: [what we know, what's in scope, relevant findings so far]
+  FOCUS: JWT handling, session management, password reset flow
+  OUTPUT: Write to target/workers/done/task-NNN-auth-review-result.md
+  
+  QUALITY RULES:
+  - Be EXHAUSTIVE. Do not skip any code path.
+  - Distinguish CONFIRMED vs INFERRED vs SPECULATED.
+  - Note chain opportunities with existing primitives.
+  - List what was tested AND what was NOT tested.
+  `
+})
+```
+
+**Opus worker** — for deep reasoning and complex analysis:
+
+```
+Agent({
+  name: "analyze-crypto-impl",
+  description: "Deep cryptographic implementation analysis",
+  model: "opus",
+  prompt: `TASK: Analyze custom cryptographic implementation for weaknesses
+  
+  CONTEXT: [full context including code snippets, protocol description, 
+            what Sonnet workers already found, chain opportunities]
+  
+  THINK DEEPLY ABOUT:
+  - Is the crypto scheme provably secure? What assumptions does it rely on?
+  - Are there timing side-channels in comparison operations?
+  - Can we construct a chosen-ciphertext attack?
+  - Does the PRNG have sufficient entropy? Can we predict outputs?
+  - How does this chain with other primitives we've found?
+  
+  OUTPUT: Write to target/workers/done/task-NNN-crypto-analysis-result.md
+  Include: reasoning chain, confidence levels, and specific attack scenarios.
+  `
+})
+```
+
+**Fork** — for strategic analysis needing your context:
 
 ```
 Agent({
   subagent_type: "fork",
-  name: "analyze-auth-flow",
-  prompt: "Analyze the auth flow documented in target/KNOWLEDGE.md..."
+  name: "analyze-chain-opportunity",
+  prompt: "Given the new SSRF primitive, re-evaluate all entries in CHAINS.md.
+           Which chains are now viable? Update priority rankings."
 })
 ```
+
+### Parallel Worker Patterns
+
+Launch workers in a SINGLE message for maximum parallelism:
+
+**Recon phase** — all Haiku (independent, mechanical):
+```
+Message 1 (parallel):
+  - Haiku: subdomain enumeration
+  - Haiku: port scanning
+  - Haiku: wayback URL collection
+  - Haiku: technology fingerprinting
+```
+
+**Testing phase** — mixed models (complexity varies):
+```
+Message 2 (parallel):
+  - Haiku: run nuclei templates against all endpoints
+  - Haiku: run ffuf directory brute-force
+  - Sonnet: test authentication bypass vectors
+  - Sonnet: analyze business logic for race conditions
+```
+
+**Code review phase** — all Sonnet (requires reasoning):
+```
+Message 3 (parallel):
+  - Sonnet: review auth module (src/auth/)
+  - Sonnet: review API handlers (src/api/)
+  - Sonnet: review input validation (src/validators/)
+  - Sonnet: trace data flow from user input to database
+```
+
+### Cost vs Depth Optimization
+
+1. **Match model to task complexity** — don't use Opus for grep, don't use Haiku for taint analysis
+2. **Start with appropriate model, escalate if needed** — if Sonnet's result is shallow on a hard problem, re-run with Opus + Sonnet's output as context
+3. **Batch Haiku workers aggressively** — cheap and fast, launch 4-6 in parallel for data collection
+4. **Use Sonnet for the bulk of analysis** — most security testing is well within Sonnet's capability
+5. **Reserve Opus workers for genuinely hard problems** — novel attack vectors, complex chains, crypto analysis, obfuscated code, architectural review of large systems
+6. **Fork sparingly** — max 1-2 per decision point, only when the worker needs YOUR strategic context
+7. **Never waste a powerful model on mechanical work** — if it's "run this command", it's Haiku
 
 ### Worker Instructions Must Include
 Every worker prompt MUST contain:
 1. **Exact objective** — what to find/test/analyze
-2. **Full context** — what we know, what's in scope
+2. **Full context** — what we know, what's in scope (Sonnet needs more context than Haiku)
 3. **Tool check** — run check-and-install.sh first if tools needed
 4. **Output file path** — where to write results
 5. **Quality rules** — be exhaustive, no hallucination, note chain opportunities
 6. **Coverage tracking** — list what was tested AND what was NOT tested
+
+**Haiku-specific**: Keep prompts short and directive. Haiku excels at clear, mechanical instructions. Don't ask Haiku to reason about security implications — just collect data.
+
+**Sonnet-specific**: Provide full context including relevant findings, chain opportunities, and hypotheses. Ask Sonnet to reason about WHY something might be vulnerable, not just test payloads.
 
 ### Task File Protocol
 
@@ -232,7 +377,11 @@ After EVERY worker completes, you MUST:
 6. Update STATE.md with progress
 7. Update CHAINS.md if new chain opportunities found
 8. Create leads for promising findings
-9. If worker output is LOW QUALITY → re-assign with better instructions
+9. If worker output is LOW QUALITY:
+   - Haiku worker failed → re-run Haiku with clearer instructions (prompt issue, not model issue)
+   - Sonnet worker shallow on complex task → escalate to Opus worker with Sonnet's output as context
+   - Sonnet worker missed things → re-run Sonnet with more specific focus areas
+   - Opus worker inconclusive → this is genuinely hard; fork to rethink approach
 
 ## OPEN SOURCE CODE REVIEW PROTOCOL
 
