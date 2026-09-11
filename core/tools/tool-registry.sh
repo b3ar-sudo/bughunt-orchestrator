@@ -9,6 +9,7 @@
 TOOLS_WEB_APP=(
     subfinder httpx nuclei katana ffuf feroxbuster
     dalfox sqlmap gau waybackurls arjun
+    gospider hakrawler wfuzz jwt_tool tplmap
     nmap curl jq
 )
 
@@ -21,7 +22,8 @@ TOOLS_API=(
 TOOLS_BINARY=(
     gdb checksec ropper file readelf
     strace ltrace objdump
-    python3 pip3
+    python3 pip3 pwntools angr
+    afl-fuzz
 )
 
 TOOLS_MOBILE=(
@@ -38,6 +40,8 @@ TOOLS_CLOUD=(
     nmap subfinder httpx nuclei
     aws gcloud az
     kubectl docker
+    scoutsuite prowler pacu
+    enumerate-iam kube-hunter trivy
     dig curl jq
 )
 
@@ -49,7 +53,7 @@ check_tool() {
     local tool="$1"
     case "$tool" in
         # Go tools (check binary)
-        subfinder|httpx|nuclei|katana|ffuf|gau|arjun)
+        subfinder|httpx|nuclei|katana|ffuf|gau|arjun|gospider|hakrawler)
             command -v "$tool" &>/dev/null ;;
         feroxbuster)
             command -v feroxbuster &>/dev/null ;;
@@ -71,6 +75,26 @@ check_tool() {
             command -v objection &>/dev/null ;;
         frida)
             command -v frida &>/dev/null || pip3 show frida-tools &>/dev/null ;;
+        wfuzz)
+            command -v wfuzz &>/dev/null ;;
+        jwt_tool)
+            command -v jwt_tool &>/dev/null || [[ -f ~/jwt_tool/jwt_tool.py ]] ;;
+        tplmap)
+            command -v tplmap &>/dev/null || [[ -f ~/tplmap/tplmap.py ]] ;;
+        angr)
+            python3 -c "import angr" &>/dev/null ;;
+        scoutsuite)
+            command -v scout &>/dev/null || pip3 show ScoutSuite &>/dev/null ;;
+        prowler)
+            command -v prowler &>/dev/null ;;
+        pacu)
+            command -v pacu &>/dev/null || pip3 show pacu &>/dev/null ;;
+        enumerate-iam)
+            command -v enumerate-iam &>/dev/null || [[ -f ~/enumerate-iam/enumerate-iam.py ]] ;;
+        kube-hunter)
+            command -v kube-hunter &>/dev/null || pip3 show kube-hunter &>/dev/null ;;
+        trivy)
+            command -v trivy &>/dev/null ;;
 
         # Android tools
         jadx)
@@ -89,6 +113,8 @@ check_tool() {
             command -v ropper &>/dev/null || pip3 show ropper &>/dev/null ;;
         pwntools)
             python3 -c "import pwn" &>/dev/null ;;
+        afl-fuzz)
+            command -v afl-fuzz &>/dev/null ;;
 
         # System tools
         nmap|curl|jq|git|dig|file|readelf|strace|ltrace|objdump)
@@ -184,6 +210,10 @@ install_tool() {
             install_go_tool "github.com/hahwul/dalfox/v2@latest" ;;
         arjun)
             pip3 install arjun 2>&1 ;;
+        gospider)
+            install_go_tool "github.com/jaeles-project/gospider@latest" ;;
+        hakrawler)
+            install_go_tool "github.com/hakluke/hakrawler@latest" ;;
 
         # === Rust tools ===
         feroxbuster)
@@ -215,6 +245,56 @@ install_tool() {
             pip3 install ropper 2>&1 ;;
         pwntools)
             pip3 install pwntools 2>&1 ;;
+        wfuzz)
+            pip3 install wfuzz 2>&1 ;;
+        jwt_tool)
+            git clone https://github.com/ticarpi/jwt_tool.git ~/jwt_tool 2>&1
+            pip3 install -r ~/jwt_tool/requirements.txt 2>&1
+            chmod +x ~/jwt_tool/jwt_tool.py
+            sudo ln -sf ~/jwt_tool/jwt_tool.py /usr/local/bin/jwt_tool ;;
+        tplmap)
+            git clone https://github.com/epinna/tplmap.git ~/tplmap 2>&1
+            pip3 install -r ~/tplmap/requirements.txt 2>&1 || true
+            chmod +x ~/tplmap/tplmap.py
+            sudo ln -sf ~/tplmap/tplmap.py /usr/local/bin/tplmap ;;
+        angr)
+            pip3 install angr 2>&1 ;;
+        scoutsuite)
+            pip3 install scoutsuite 2>&1 ;;
+        prowler)
+            pip3 install prowler 2>&1 ;;
+        pacu)
+            pip3 install pacu 2>&1 ;;
+        enumerate-iam)
+            git clone https://github.com/andresriancho/enumerate-iam.git ~/enumerate-iam 2>&1
+            pip3 install -r ~/enumerate-iam/requirements.txt 2>&1 || true
+            chmod +x ~/enumerate-iam/enumerate-iam.py
+            sudo ln -sf ~/enumerate-iam/enumerate-iam.py /usr/local/bin/enumerate-iam ;;
+        kube-hunter)
+            pip3 install kube-hunter 2>&1 ;;
+        trivy)
+            case "$os" in
+                ubuntu|debian|kali)
+                    sudo apt-get install -y wget apt-transport-https gnupg lsb-release 2>&1
+                    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg 2>&1
+                    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+                    sudo apt-get update && sudo apt-get install -y trivy 2>&1 ;;
+                macos)
+                    brew install trivy 2>&1 ;;
+                *)
+                    echo "Install trivy manually: https://aquasecurity.github.io/trivy/"
+                    return 1 ;;
+            esac ;;
+        afl-fuzz)
+            case "$os" in
+                ubuntu|debian|kali)
+                    sudo apt-get update && sudo apt-get install -y afl++ 2>&1 ;;
+                macos)
+                    brew install aflplusplus 2>&1 ;;
+                *)
+                    echo "Install AFL++ manually: https://github.com/AFLplusplus/AFLplusplus"
+                    return 1 ;;
+            esac ;;
 
         # === System packages ===
         nmap|curl|jq|git|dig|file|readelf|strace|ltrace|objdump|gdb)

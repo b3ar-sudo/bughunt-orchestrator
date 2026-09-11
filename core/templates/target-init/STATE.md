@@ -39,10 +39,8 @@ _(pending scope definition)_
 _(none)_
 
 ## Next Steps (ACTIONABLE)
-1. Define target in config.md
-2. Define scope in SCOPE.md
-3. Run tool check: `bash core/tools/check-and-install.sh --playbook {type}`
-4. Begin reconnaissance
+1. Waiting for user to describe target (orchestrator auto-configures everything)
+2. _(auto-filled by orchestrator after target description received)_
 
 ## Key Findings So Far
 | ID | Severity | Title | Status |

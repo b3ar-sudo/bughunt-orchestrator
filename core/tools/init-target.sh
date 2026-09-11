@@ -15,12 +15,26 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-TARGET_NAME="${1:-}"
+AUTO_YES=false
+TARGET_NAME=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes) AUTO_YES=true ;;
+        *) TARGET_NAME="$1" ;;
+    esac
+    shift
+done
 
 # Check if target/ already has data
 if [[ -f "$TARGET_DIR/config.md" ]]; then
-    echo -e "${YELLOW}Warning: target/ already has files.${NC}"
-    read -p "Archive existing target and start fresh? [y/N] " confirm
+    if $AUTO_YES; then
+        confirm="y"
+    else
+        echo -e "${YELLOW}Warning: target/ already has files.${NC}"
+        read -p "Archive existing target and start fresh? [y/N] " confirm
+    fi
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         echo "Aborted."
         exit 0
@@ -48,13 +62,21 @@ cp "$TEMPLATES"/*.md "$TARGET_DIR"/
 # Copy CHAINS.md to leads/
 cp "$TEMPLATES"/CHAINS.md "$TARGET_DIR"/leads/ 2>/dev/null || true
 
-# Set date
+# Set date (compatible with macOS and Linux)
 TODAY=$(date +%Y-%m-%d)
-sed -i "s/YYYY-MM-DD/$TODAY/g" "$TARGET_DIR"/*.md
+if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i '' "s/YYYY-MM-DD/$TODAY/g" "$TARGET_DIR"/*.md
+else
+    sed -i "s/YYYY-MM-DD/$TODAY/g" "$TARGET_DIR"/*.md
+fi
 
 # Set target name if provided
 if [[ -n "$TARGET_NAME" ]]; then
-    sed -i "s/_TBD_/$TARGET_NAME/" "$TARGET_DIR/config.md"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' "s/_TBD_/$TARGET_NAME/" "$TARGET_DIR/config.md"
+    else
+        sed -i "s/_TBD_/$TARGET_NAME/" "$TARGET_DIR/config.md"
+    fi
     echo -e "${GREEN}Target initialized: $TARGET_NAME${NC}"
 else
     echo -e "${GREEN}Target initialized. Edit target/config.md to configure.${NC}"

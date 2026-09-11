@@ -74,13 +74,17 @@ echo -e "${BLUE}[3/4]${NC} Initializing target workspace..."
 cp core/templates/target-init/*.md target/
 cp core/templates/target-init/CHAINS.md target/leads/ 2>/dev/null || true
 
-# Set today's date
+# Set today's date (compatible with macOS and Linux)
 TODAY=$(date +%Y-%m-%d)
-sed -i "s/YYYY-MM-DD/$TODAY/g" target/*.md 2>/dev/null || true
+if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i '' "s/YYYY-MM-DD/$TODAY/g" target/*.md 2>/dev/null || true
+else
+    sed -i "s/YYYY-MM-DD/$TODAY/g" target/*.md 2>/dev/null || true
+fi
 
 # Add .gitkeep to preserve empty dirs
 for dir in target/recon target/leads target/primitives target/findings \
-           target/reports target/sessions target/workers/queue \
+           target/reports target/sessions target/evidence target/workers/queue \
            target/workers/running target/workers/done archive; do
     touch "$dir/.gitkeep"
 done

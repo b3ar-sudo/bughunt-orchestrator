@@ -9,6 +9,8 @@ target/sessions/*
 target/workers/queue/*
 target/workers/running/*
 target/workers/done/*
+target/evidence/*
+!target/evidence/.gitkeep
 
 # Keep directories
 !target/recon/.gitkeep

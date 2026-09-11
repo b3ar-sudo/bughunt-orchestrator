@@ -32,16 +32,19 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --playbook)
             shift
-            PLAYBOOK="$1"
-            case "$PLAYBOOK" in
-                web-app)  TOOLS+=(${TOOLS_WEB_APP[@]}) ;;
-                api)      TOOLS+=(${TOOLS_API[@]}) ;;
-                binary)   TOOLS+=(${TOOLS_BINARY[@]}) ;;
-                mobile)   TOOLS+=(${TOOLS_MOBILE[@]}) ;;
-                opensource) TOOLS+=(${TOOLS_OPENSOURCE[@]}) ;;
-                cloud)    TOOLS+=(${TOOLS_CLOUD[@]}) ;;
-                *)        err "Unknown playbook: $PLAYBOOK"; exit 1 ;;
-            esac
+            IFS=',' read -ra PLAYBOOKS <<< "$1"
+            for PLAYBOOK in "${PLAYBOOKS[@]}"; do
+                case "$PLAYBOOK" in
+                    web-app)    TOOLS+=(${TOOLS_WEB_APP[@]}) ;;
+                    api)        TOOLS+=(${TOOLS_API[@]}) ;;
+                    binary)     TOOLS+=(${TOOLS_BINARY[@]}) ;;
+                    mobile)     TOOLS+=(${TOOLS_MOBILE[@]}) ;;
+                    opensource)  TOOLS+=(${TOOLS_OPENSOURCE[@]}) ;;
+                    cloud)      TOOLS+=(${TOOLS_CLOUD[@]}) ;;
+                    all)        TOOLS+=(${TOOLS_WEB_APP[@]} ${TOOLS_API[@]} ${TOOLS_BINARY[@]} ${TOOLS_MOBILE[@]} ${TOOLS_OPENSOURCE[@]} ${TOOLS_CLOUD[@]}) ;;
+                    *)          err "Unknown playbook: $PLAYBOOK"; exit 1 ;;
+                esac
+            done
             ;;
         --check-only)
             CHECK_ONLY=true
@@ -56,7 +59,8 @@ done
 if [[ ${#TOOLS[@]} -eq 0 ]]; then
     echo "Usage: $0 [--check-only] [--playbook <name>] [tool1 tool2 ...]"
     echo ""
-    echo "Playbooks: web-app, api, binary, mobile, opensource, cloud"
+    echo "Playbooks: web-app, api, binary, mobile, opensource, cloud, all"
+    echo "Combine:   --playbook web-app,api"
     echo ""
     echo "Run with --check-only to see what's missing without installing."
     exit 0
