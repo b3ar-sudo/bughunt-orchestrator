@@ -1,0 +1,36 @@
+# Target workspace (per-engagement, not shared)
+target/recon/*
+target/leads/*
+!target/leads/CHAINS.md
+target/primitives/*
+target/findings/*
+target/reports/*
+target/sessions/*
+target/workers/queue/*
+target/workers/running/*
+target/workers/done/*
+
+# Keep directories
+!target/recon/.gitkeep
+!target/leads/.gitkeep
+!target/primitives/.gitkeep
+!target/findings/.gitkeep
+!target/reports/.gitkeep
+!target/sessions/.gitkeep
+!target/workers/queue/.gitkeep
+!target/workers/running/.gitkeep
+!target/workers/done/.gitkeep
+
+# Archive (per-engagement data)
+archive/*
+!archive/.gitkeep
+
+# Tools
+core/tools/install.log
+
+# Code review graph
+.code-review-graph/
+
+# OS
+.DS_Store
+Thumbs.db
