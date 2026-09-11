@@ -100,10 +100,12 @@ Maintain a **chain matrix** in `target/leads/CHAINS.md`:
 3. Read target/SCOPE.md         → know the boundaries
 4. Read target/config.md        → know the target type
 5. Read target/leads/CHAINS.md  → know the chain opportunities
-6. Read latest session log      → know recent context
-7. Load playbook for target type
-8. Auto-detect and install required tools (see TARGET ONBOARDING below)
-9. Continue from STATE.md next steps → no hesitation, just execute
+6. Read target/PREFLIGHT.md     → know readiness status
+7. Read latest session log      → know recent context
+8. Load playbook for target type
+9. Auto-detect and install required tools (see TARGET ONBOARDING below)
+10. If PREFLIGHT status is BLOCKED → resolve blockers first
+11. Continue from STATE.md next steps → no hesitation, just execute
 ```
 
 **If STATE.md says "no active target"** → ask user to describe what they want to test (this is the ONE exception to autonomy).
@@ -133,10 +135,73 @@ Based on target type, auto-generate:
 - Load the matching playbook from `core/playbooks/`
 - Write initial `target/STRATEGY.md` with phase plan
 - Create session log entry
-- Begin Phase 1 immediately
+
+### Step 4: Pre-flight Readiness Check (MANDATORY before testing)
+
+Before ANY active testing begins, verify ALL prerequisites. Write checklist to `target/PREFLIGHT.md`:
+
+```markdown
+# Pre-flight Readiness Check
+Date: YYYY-MM-DD
+Target: {target_name}
+
+## 1. Account & Access
+- [ ] Test account(s) created on target platform
+- [ ] Email verification completed (if required)
+- [ ] Phone verification completed (if required)
+- [ ] Multiple accounts created for multi-role testing (user, admin, guest)
+- [ ] API keys/tokens obtained (if target provides developer access)
+- [ ] Test payment method configured (if testing payment flows — use test cards only)
+- [ ] All user roles documented with access levels
+
+## 2. Authorization & Legal
+- [ ] Bug bounty program rules READ completely (not skimmed)
+- [ ] In-scope assets confirmed and documented in SCOPE.md
+- [ ] Out-of-scope exclusions noted (specific vuln types, endpoints, etc.)
+- [ ] Safe harbor clause verified
+- [ ] Rate limiting / DoS restrictions noted
+- [ ] Automated scanning policy checked (some programs ban automated tools)
+- [ ] Disclosure policy understood (timeframes, NDA requirements)
+- [ ] VPN/proxy required by program rules? If yes → configured
+
+## 3. Tools & Environment
+- [ ] All required tools installed and verified working (check-and-install.sh passed)
+- [ ] Proxy/interceptor configured (Burp Suite / mitmproxy / Caido)
+- [ ] Browser profile isolated (separate profile for testing, no personal cookies)
+- [ ] Scope configured in proxy (only intercept in-scope domains)
+- [ ] Wordlists downloaded and ready (SecLists, custom)
+- [ ] DNS resolver configured for subdomain enumeration
+
+## 4. Target Understanding
+- [ ] Target application explored manually (browsed all features as normal user)
+- [ ] All user-facing features identified and listed
+- [ ] Authentication mechanism understood (session, JWT, OAuth, etc.)
+- [ ] Technology stack fingerprinted (server, framework, CDN, WAF)
+- [ ] API documentation found and reviewed (if public)
+- [ ] Mobile app downloaded (if in scope)
+
+## 5. Workspace Ready
+- [ ] STATE.md initialized with current phase
+- [ ] STRATEGY.md has attack plan
+- [ ] SCOPE.md matches program scope exactly
+- [ ] Session log created
+- [ ] Evidence directory ready for screenshots/recordings
+
+## Status: [ ] READY / [ ] BLOCKED (reason: ___)
+```
+
+**Readiness rules:**
+- ALL items in sections 1-3 must be checked before active testing
+- Section 4 items can be completed during recon phase
+- If ANY section 1-2 item is BLOCKED → STOP and resolve before testing
+- If test accounts cannot be created → ask user for credentials (this is an allowed exception to autonomy)
+- If program rules ban automated scanning → adjust strategy to manual-only methodology
+- Document WHAT is blocked and WHY in STATE.md
+
+**The orchestrator auto-fills what it can** (tool installation, workspace setup, scope documentation) and flags what requires user action (account creation with personal email, payment methods, credentials).
 
 **The user should NEVER need to manually edit config files or run install commands.**
-**From "here's what I want to test" to active hunting should be < 2 minutes.**
+**From "here's what I want to test" to active hunting should be < 5 minutes (including pre-flight).**
 
 ## ROLE: Strategic Coordinator
 
@@ -556,6 +621,7 @@ Never fail silently because a tool is missing. Install it or report that install
 Before context gets large (or before `/compact`):
 
 - [ ] STATE.md is up to date with exact next steps and reasoning
+- [ ] PREFLIGHT.md reflects current readiness status
 - [ ] Coverage matrix is current
 - [ ] All findings are written to files
 - [ ] CHAINS.md is updated

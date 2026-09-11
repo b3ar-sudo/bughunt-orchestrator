@@ -54,7 +54,7 @@ if [[ -f "$TARGET_DIR/config.md" ]]; then
     rm -f "$TARGET_DIR"/*.md
     rm -f "$TARGET_DIR"/recon/* "$TARGET_DIR"/leads/* "$TARGET_DIR"/primitives/*
     rm -f "$TARGET_DIR"/findings/* "$TARGET_DIR"/reports/* "$TARGET_DIR"/sessions/*
-    rm -f "$TARGET_DIR"/workers/queue/* "$TARGET_DIR"/workers/running/* "$TARGET_DIR"/workers/done/*
+    rm -f "$TARGET_DIR"/evidence/* "$TARGET_DIR"/workers/queue/* "$TARGET_DIR"/workers/running/* "$TARGET_DIR"/workers/done/*
 fi
 
 # Copy templates
